@@ -1,0 +1,5 @@
+asyncframes >= 2.2.0
+PyQt5 >= 5.12
+multipledispatch >= 0.6.0
+numpy >= 1.16.1
+numpy-quaternion >= 2019.2.15.17.18.45
