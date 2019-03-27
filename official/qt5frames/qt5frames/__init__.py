@@ -104,6 +104,7 @@ class MainWindow(Container, QMainWindow):
 
     def _ondispose(self):
         self.deleteLater()
+        super()._ondispose()
 
     def closeEvent(self, event):
         self.closed.send(event)
@@ -145,6 +146,7 @@ class Dialog(Container, QDialog):
 
     def _ondispose(self):
         self.deleteLater()
+        super()._ondispose()
 
     def closeEvent(self, event):
         self.closed.send(event)
@@ -248,16 +250,24 @@ class CanvasLayer(Frame):
 
         if isinstance(self, Canvas) or isinstance(self, Pixmap):
             self._canvas = self
+            self._parentLayer = None
         else:
             # Find parent frame of class Canvas
             self._canvas = find_parent((Canvas, Pixmap))
             if self._canvas is None:
                 raise Exception("CanvasLayer can't be defined outside Canvas")
+            self._parentLayer = find_parent(CanvasLayer)
+            self._parentLayer.shapes.append(self)
 
-            self._canvas.layers.append(self)
+        self.shapes = []
 
     def _ondispose(self):
-        self._canvas.layers.remove(self)
+        if self._parentLayer is not None: self._parentLayer.shapes.remove(self)
+        super()._ondispose()
+
+    def clear(self):
+        for shape in self.shapes:
+            shape.remove()
 
     def create(self, framefunc, *frameargs, pos=None, rot=None, scl=None, **framekwargs):
         self.transform = QTransform()
@@ -266,7 +276,7 @@ class CanvasLayer(Frame):
         if rot is not None: self._rot = rot
         if scl is not None: self._scl = scl
 
-        if isinstance(self._rot, numbers.Number): self._rot = quat(self._rot)
+        if isinstance(self._rot, numbers.Number): self._rot = quat.from_axis_angle(vec3(0, 0, 1), self._rot)
         if isinstance(self._scl, numbers.Number): self._scl = vec2(self._scl, self._scl)
 
         self._update_transform() # Update transform matrix to reflect self._pos, self._rot and self._scl
@@ -286,6 +296,10 @@ class CanvasLayer(Frame):
 
         self._canvas.update()
 
+    def draw(self, painter):
+        for shape in self.shapes:
+            shape.draw(painter)
+
     @property
     def pos(self):
         return self._pos
@@ -300,6 +314,7 @@ class CanvasLayer(Frame):
     @rot.setter
     def rot(self, value):
         self._rot = value # Set new self._rot
+        if isinstance(self._rot, numbers.Number): self._rot = quat.from_axis_angle(vec3(0, 0, 1), self._rot)
         self._update_transform()
 
     @property
@@ -308,6 +323,7 @@ class CanvasLayer(Frame):
     @scl.setter
     def scl(self, value):
         self._scl = value # Set new self._scl
+        if isinstance(self._scl, numbers.Number): self._scl = vec2(self._scl, self._scl)
         self._update_transform() # Update self.transform
 
 class Canvas(CanvasLayer, QWidget, metaclass=QtFrame):
@@ -320,7 +336,6 @@ class Canvas(CanvasLayer, QWidget, metaclass=QtFrame):
         parent.add_widget(self, **kwargs)
         if size is not None:
             self.resize(*size)
-        self.layers = [self]
         self.setBackgroundRole(QtGui.QPalette.Base)
         self.setAutoFillBackground(True)
         self.show()
@@ -331,32 +346,26 @@ class Canvas(CanvasLayer, QWidget, metaclass=QtFrame):
         #painter.drawRect(QRect(0, 0, self.width() - 1, self.height() - 1))
         #painter.setPen(QtGui.QPen(Qt.blue))
         #painter.drawLine(0, 0, 100, 100)
-        for layer in self.layers:
-            for primitive in layer._primitives:
-                primitive.draw(painter)
+        self.draw(painter)
         painter.end()
-    def _remove_stage2(self, *args, **kwargs):
+    def _ondispose(self):
         parent = find_parent(Container)
         parent.remove_widget(self)
         self.setParent(None)
         self.deleteLater()
-        super()._remove_stage2(*args, **kwargs)
 
 class Pixmap(CanvasLayer, QPixmap, metaclass=QtFrame):
     def __init__(self, width=None, height=None, pos=None, rot=None, scl=None, **kwargs):
         CanvasLayer.__init__(self, pos, rot, scl)
         self._width = width
         self._height = height
-        self.layers = [self]
     def create(self, framefunc, *frameargs, width=None, height=None, **framekwargs):
         QPixmap.__init__(self, width or self._width, height or self._height)
         super().create(framefunc, *frameargs, **framekwargs)
     def draw(self):
         painter = QtGui.QPainter()
         painter.begin(self)
-        for layer in self.layers:
-            for primitive in layer._primitives:
-                primitive.draw(painter)
+        self.draw(painter)
         painter.end()
     def update(self):
         pass #self.draw()
@@ -409,11 +418,11 @@ class Widget(Primitive):
         super().__init__(Container)
         self.double_clicked = Event("{}.double_clicked".format(self.__class__.__name__))
 
-    def remove(self):
+    def _ondispose(self):
         self._owner.remove_widget(self)
         self.setParent(None)
         self.deleteLater()
-        super().remove()
+        super()._ondispose()
 
     def _show(self, kwargs):
         self.resize(self.sizeHint())
@@ -585,6 +594,11 @@ class Shape(Primitive, metaclass=abc.ABCMeta):
         # Find parent frame of class Canvas
         self._canvas = find_parent(Canvas)
 
+        self._owner.shapes.append(self)
+
+    def _ondispose(self):
+        self._owner.shapes.remove(self)
+
     @abc.abstractmethod
     def draw(self, painter):
         raise NotImplementedError
@@ -674,14 +688,15 @@ class Text(Shape):
         painter.drawText(self.pos.x, self.pos.y, self.size.x, self.size.y, self.alignment, self.text)
 
 class Image(Shape):
-    def __init__(self, pos, size, image, srcpos=vec2(0, 0), srcsize=None):
+    def __init__(self, pos, size, image):
         super().__init__()
         self.pos = pos
+        self.size = size
         self.image = image
-        self.srcpos = srcpos
-        self.srcsize = vec2(image.width(), image.height()) if srcsize is None else srcsize
-        self.size = vec2(self.srcsize) if size is None else size
 
     def draw(self, painter):
         painter.setWorldTransform(self._owner.transform)
-        painter.drawPixmap(QRectF(*self.pos, *self.size), self.image, QRectF(*self.srcpos, *self.srcsize))
+        if self.size is not None:
+            painter.drawPixmap(QRectF(*self.pos, *self.size), self.image, QRectF(0, 0, self.image.width(), self.image.height()))
+        else:
+            painter.drawPixmap(QPointF(*self.pos), self.image)
