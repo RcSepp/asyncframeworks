@@ -22,7 +22,7 @@ __all__ = [
     'Container', 'MainWindow', 'Dialog', 'Layout', 'HBoxLayout', 'VBoxLayout', 'GridLayout', 'FormLayout', 'StackedLayout', 'GroupBox', 'TabWidget', 'TabPage', 'CanvasLayer', 'Canvas', 'Pixmap',
 
     # Widgets
-    'Widget', 'PushButton', 'Label', 'LCDNumber', 'ProgressBar', 'ComboBox', 'ListView', 'DialogButtonBox',
+    'Widget', 'PushButton', 'Label', 'LCDNumber', 'ProgressBar', 'ComboBox', 'Slider', 'ListView', 'DialogButtonBox',
 
     # Shapes
     'Shape', 'Line', 'Lines', 'Polyline', 'Rect', 'Circle', 'Text', 'Image',
@@ -500,6 +500,21 @@ class ComboBox(Widget, QtWidgets.QComboBox):
         _convert_all_signals_to_awaitables(self)
         self._show(kwargs)
 _create_properties(QtWidgets.QComboBox, ComboBox)
+
+class Slider(Widget, QtWidgets.QSlider):
+    @dispatch(Qt.Orientation)
+    def __init__(self, orientation, **kwargs):
+        super().__init__()
+        QtWidgets.QSlider.__init__(self, orientation, self._owner)
+        _convert_all_signals_to_awaitables(self)
+        self._show(kwargs)
+    @dispatch()
+    def __init__(self, **kwargs):
+        super().__init__()
+        QtWidgets.QSlider.__init__(self, self._owner)
+        _convert_all_signals_to_awaitables(self)
+        self._show(kwargs)
+_create_properties(QtWidgets.QSlider, Slider)
 
 class ListView(Widget, QtWidgets.QListView):
     @dispatch(str)
