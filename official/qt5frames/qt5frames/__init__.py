@@ -365,7 +365,7 @@ class Pixmap(CanvasLayer, QPixmap, metaclass=QtFrame):
     def draw(self):
         painter = QtGui.QPainter()
         painter.begin(self)
-        self.draw(painter)
+        CanvasLayer.draw(self, painter)
         painter.end()
     def update(self):
         pass #self.draw()
