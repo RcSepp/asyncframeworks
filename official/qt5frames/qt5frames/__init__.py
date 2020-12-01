@@ -93,6 +93,7 @@ class MainWindow(Container, QMainWindow):
         if modal:
             self.setWindowModality(Qt.ApplicationModal)
         self.closed = Event("MainWindow.closed")
+        self.resized = Event("MainWindow.resized")
 
     def create(self, framefunc, *frameargs, size=None, title=None, **framekwargs):
         if size:
@@ -110,6 +111,9 @@ class MainWindow(Container, QMainWindow):
         self.closed.send(event)
         if event.isAccepted(): # If event wasn't canceled by user
             self.remove()
+
+    def resizeEvent(self, event):
+        self.resized.send(QtEvent(self, event))
 
     def add_widget(self, widget, **kwargs):
         self.setCentralWidget(widget)
@@ -416,7 +420,10 @@ def _convert_all_signals_to_awaitables(obj):
 class Widget(Primitive):
     def __init__(self):
         super().__init__(Container)
-        self.double_clicked = Event("{}.double_clicked".format(self.__class__.__name__))
+        self.mouse_pressed = Event(f"{self.__class__.__name__}.mouse_pressed")
+        self.mouse_released = Event(f"{self.__class__.__name__}.mouse_released")
+        self.mouse_moved = Event(f"{self.__class__.__name__}.mouse_moved")
+        self.double_clicked = Event(f"{self.__class__.__name__}.double_clicked")
 
     def _ondispose(self):
         self._owner.remove_widget(self)
@@ -429,8 +436,29 @@ class Widget(Primitive):
         self._owner.add_widget(self, **kwargs)
         self.show()
 
+    def mousePressEvent(self, event):
+        qtevent = QtEvent(self, event)
+        self.mouse_pressed.send(qtevent)
+        if not getattr(qtevent, "handled", False):
+            super().mousePressEvent(event)
+
+    def mouseReleaseEvent(self, event):
+        qtevent = QtEvent(self, event)
+        self.mouse_released.send(qtevent)
+        if not getattr(qtevent, "handled", False):
+            super().mouseReleaseEvent(event)
+
+    def mouseMoveEvent(self, event):
+        qtevent = QtEvent(self, event)
+        self.mouse_moved.send(qtevent)
+        if not getattr(qtevent, "handled", False):
+            super().mouseMoveEvent(event)
+
     def mouseDoubleClickEvent(self, event):
-        self.double_clicked.send(event)
+        qtevent = QtEvent(self, event)
+        self.double_clicked.send(qtevent)
+        if not getattr(qtevent, "handled", False):
+            super().mouseDoubleClickEvent(event)
 
 class PushButton(Widget, QtWidgets.QPushButton):
     @dispatch(QtGui.QIcon, str)
