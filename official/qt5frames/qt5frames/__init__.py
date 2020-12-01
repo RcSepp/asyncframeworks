@@ -8,7 +8,7 @@ import numbers
 import quaternion
 import re
 from multipledispatch import dispatch
-from PyQt5 import QtWidgets, QtGui, QtCore
+from PyQt5 import QtWidgets, QtGui, QtCore, QtChart
 from PyQt5.QtWidgets import QWidget, QMainWindow, QDialog, QGroupBox, QTabWidget, QLayout, QHBoxLayout, QVBoxLayout, QGridLayout, QFormLayout, QStackedLayout
 from PyQt5.QtCore import Qt, QObject, QRect, QPointF, QRectF
 from PyQt5.QtGui import QTransform, QPixmap
@@ -22,13 +22,13 @@ __all__ = [
     'Container', 'MainWindow', 'Dialog', 'Layout', 'HBoxLayout', 'VBoxLayout', 'GridLayout', 'FormLayout', 'StackedLayout', 'GroupBox', 'TabWidget', 'TabPage', 'CanvasLayer', 'Canvas', 'Pixmap',
 
     # Widgets
-    'Widget', 'PushButton', 'Label', 'LCDNumber', 'ProgressBar', 'ComboBox', 'Slider', 'ListView', 'DialogButtonBox',
+    'Widget', 'PushButton', 'CheckBox', 'Label', 'PlainTextEdit', 'LineEdit', 'TextBrowser', 'LCDNumber', 'ProgressBar', 'ComboBox', 'Slider', 'Border', 'ListView', 'ListWidget', 'TreeView', 'TableView', 'ChartView', 'PlotWidget', 'DialogButtonBox',
 
     # Shapes
     'Shape', 'Line', 'Lines', 'Polyline', 'Rect', 'Circle', 'Text', 'Image',
 
     # Other
-    'StandardItemModel', 'StandardItem',
+    'StandardItemModel', 'StandardItem', 'ListWidgetItem',
 ]
 __version__ = '0.0.1'
 
@@ -481,6 +481,21 @@ class PushButton(Widget, QtWidgets.QPushButton):
         self._show(kwargs)
 _create_properties(QtWidgets.QPushButton, PushButton)
 
+class CheckBox(Widget, QtWidgets.QCheckBox):
+    @dispatch(str)
+    def __init__(self, text, **kwargs):
+        super().__init__()
+        QtWidgets.QCheckBox.__init__(self, text, self._owner)
+        _convert_all_signals_to_awaitables(self)
+        self._show(kwargs)
+    @dispatch()
+    def __init__(self, **kwargs):
+        super().__init__()
+        QtWidgets.QCheckBox.__init__(self, self._owner)
+        _convert_all_signals_to_awaitables(self)
+        self._show(kwargs)
+_create_properties(QtWidgets.QCheckBox, CheckBox)
+
 class Label(Widget, QtWidgets.QLabel):
     @dispatch(str)
     def __init__(self, text, **kwargs):
@@ -495,6 +510,60 @@ class Label(Widget, QtWidgets.QLabel):
         _convert_all_signals_to_awaitables(self)
         self._show(kwargs)
 _create_properties(QtWidgets.QLabel, Label)
+
+class PlainTextEdit(Widget, QtWidgets.QPlainTextEdit):
+    @dispatch(str)
+    def __init__(self, text, **kwargs):
+        super().__init__()
+        QtWidgets.QPlainTextEdit.__init__(self, text, self._owner)
+        _convert_all_signals_to_awaitables(self)
+        self._show(kwargs)
+    @dispatch()
+    def __init__(self, **kwargs):
+        super().__init__()
+        QtWidgets.QPlainTextEdit.__init__(self, self._owner)
+        _convert_all_signals_to_awaitables(self)
+        self._show(kwargs)
+_create_properties(QtWidgets.QPlainTextEdit, PlainTextEdit)
+
+class LineEdit(Widget, QtWidgets.QLineEdit):
+    @dispatch(str)
+    def __init__(self, contents, **kwargs):
+        super().__init__()
+        QtWidgets.QLineEdit.__init__(self, contents, self._owner)
+        _convert_all_signals_to_awaitables(self)
+        self._show(kwargs)
+    @dispatch()
+    def __init__(self, **kwargs):
+        super().__init__()
+        QtWidgets.QLineEdit.__init__(self, self._owner)
+        _convert_all_signals_to_awaitables(self)
+        self._show(kwargs)
+_create_properties(QtWidgets.QLineEdit, LineEdit)
+
+class TextEdit(Widget, QtWidgets.QTextEdit):
+    @dispatch(str)
+    def __init__(self, text, **kwargs):
+        super().__init__()
+        QtWidgets.QTextEdit.__init__(self, text, self._owner)
+        _convert_all_signals_to_awaitables(self)
+        self._show(kwargs)
+    @dispatch()
+    def __init__(self, **kwargs):
+        super().__init__()
+        QtWidgets.QTextEdit.__init__(self, self._owner)
+        _convert_all_signals_to_awaitables(self)
+        self._show(kwargs)
+_create_properties(QtWidgets.QTextEdit, TextEdit)
+
+class TextBrowser(Widget, QtWidgets.QTextBrowser):
+    @dispatch()
+    def __init__(self, **kwargs):
+        super().__init__()
+        QtWidgets.QTextBrowser.__init__(self, self._owner)
+        _convert_all_signals_to_awaitables(self)
+        self._show(kwargs)
+_create_properties(QtWidgets.QTextBrowser, TextBrowser)
 
 class LCDNumber(Widget, QtWidgets.QLCDNumber):
     @dispatch(int)
@@ -544,6 +613,21 @@ class Slider(Widget, QtWidgets.QSlider):
         self._show(kwargs)
 _create_properties(QtWidgets.QSlider, Slider)
 
+class Border(Widget, QtWidgets.QFrame):
+    @dispatch(Qt.WindowFlags)
+    def __init__(self, f, **kwargs):
+        super().__init__()
+        QtWidgets.QFrame.__init__(self, f, self._owner)
+        _convert_all_signals_to_awaitables(self)
+        self._show(kwargs)
+    @dispatch()
+    def __init__(self, **kwargs):
+        super().__init__()
+        QtWidgets.QFrame.__init__(self, self._owner)
+        _convert_all_signals_to_awaitables(self)
+        self._show(kwargs)
+_create_properties(QtWidgets.QFrame, Border)
+
 class ListView(Widget, QtWidgets.QListView):
     @dispatch(str)
     def __init__(self, text, **kwargs):
@@ -562,6 +646,69 @@ class ListView(Widget, QtWidgets.QListView):
     def currentChanged(self, current, previous):
         self.current_changed.send(QtEvent(self, current, previous))
 _create_properties(QtWidgets.QListView, Label)
+
+class ListWidget(Container, Widget, QtWidgets.QListWidget):
+    @dispatch()
+    def __init__(self, **kwargs):
+        Widget.__init__(self)
+        Container.__init__(self)
+        QtWidgets.QListWidget.__init__(self, self._owner)
+        _convert_all_signals_to_awaitables(self)
+        self.current_changed = Event("ListWidget.current_changed")
+        self._show(kwargs)
+    def currentChanged(self, current, previous):
+        self.current_changed.send(QtEvent(self, current, previous))
+    def add_widget(self, widget, **kwargs):
+        self.addItem(widget)
+    def remove_widget(self, widget):
+        pass
+_create_properties(QtWidgets.QListWidget, Label)
+
+class TreeView(Widget, QtWidgets.QTreeView):
+    @dispatch(str)
+    def __init__(self, text, **kwargs):
+        super().__init__()
+        QtWidgets.QTreeView.__init__(self, text, self._owner)
+        _convert_all_signals_to_awaitables(self)
+        self.current_changed = Event("TreeView.current_changed")
+        self._show(kwargs)
+    @dispatch()
+    def __init__(self, **kwargs):
+        super().__init__()
+        QtWidgets.QTreeView.__init__(self, self._owner)
+        _convert_all_signals_to_awaitables(self)
+        self.current_changed = Event("TreeView.current_changed")
+        self._show(kwargs)
+    def currentChanged(self, current, previous):
+        pass #self.current_changed.send(QtEvent(self, current, previous))
+_create_properties(QtWidgets.QTreeView, Label)
+
+class TableView(Widget, QtWidgets.QTableView):
+    @dispatch()
+    def __init__(self, **kwargs):
+        super().__init__()
+        QtWidgets.QTableView.__init__(self, self._owner)
+        _convert_all_signals_to_awaitables(self)
+        self.current_changed = Event("TableView.current_changed")
+        self._show(kwargs)
+    def currentChanged(self, current, previous):
+        self.current_changed.send(QtEvent(self, current, previous))
+_create_properties(QtWidgets.QTableView, Label)
+
+class ChartView(Widget, QtChart.QChartView):
+    @dispatch(QtChart.QChart)
+    def __init__(self, chart, **kwargs):
+        super().__init__()
+        QtChart.QChartView.__init__(self, chart, self._owner)
+        _convert_all_signals_to_awaitables(self)
+        self._show(kwargs)
+    @dispatch()
+    def __init__(self, **kwargs):
+        super().__init__()
+        QtChart.QChartView.__init__(self, self._owner)
+        _convert_all_signals_to_awaitables(self)
+        self._show(kwargs)
+_create_properties(QtChart.QChartView, Label)
 
 class StandardItemModel(PFrame, QtGui.QStandardItemModel, metaclass=QtFrame):
     @dispatch(int, int)
@@ -594,6 +741,24 @@ class StandardItem(Primitive, QtGui.QStandardItem):
         QtGui.QStandardItem.__init__(self)
         Primitive.__init__(self, StandardItemModel)
         self._owner.appendRow(self)
+
+class ListWidgetItem(Widget, QtWidgets.QListWidgetItem):
+    @dispatch(str)
+    def __init__(self, text, **kwargs):
+        super().__init__()
+        QtWidgets.QListWidgetItem.__init__(self, text, self._owner)
+        #_convert_all_signals_to_awaitables(self) #TODO
+    @dispatch(QtGui.QIcon, str)
+    def __init__(self, icon, text, **kwargs):
+        super().__init__()
+        QtWidgets.QListWidgetItem.__init__(self, icon, text, self._owner)
+        #_convert_all_signals_to_awaitables(self) #TODO
+    @dispatch()
+    def __init__(self, **kwargs):
+        super().__init__()
+        QtWidgets.QListWidgetItem.__init__(self, self._owner)
+        #_convert_all_signals_to_awaitables(self) #TODO
+_create_properties(QtWidgets.QListWidgetItem, ListWidgetItem)
 
 class DialogButtonBox(Widget, QtWidgets.QDialogButtonBox):
     @dispatch(Qt.Orientation)
