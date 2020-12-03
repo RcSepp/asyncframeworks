@@ -5,7 +5,14 @@
 import numbers
 import math
 import numpy as np
-import quaternion
+try:
+	import quaternion
+except ImportError:
+	print("Warning: Cannot import 'quaternion'")
+	# Mock quaternion
+	class quaternion(object):
+		pass
+	np.quaternion = quaternion
 
 __all__ = [
 	'lerp', 'saturate', 'sqlength', 'length', 'normalize', 'dot', 'cross', 'reflect', 'mod', 'step',

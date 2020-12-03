@@ -5,7 +5,10 @@
 import abc
 import functools
 import numbers
-import quaternion
+try:
+    import quaternion
+except ImportError:
+    pass
 import re
 from multipledispatch import dispatch
 from PyQt5 import QtWidgets, QtGui, QtCore, QtChart
